@@ -1,26 +1,21 @@
 'use client';
 
 import { City } from '@/lib/types';
+import { Lang, Currency, formatMoney, tr, cityName, countryName } from '@/lib/i18n';
 
 interface Props {
   city: City | null;
+  lang: Lang;
+  currency: Currency;
   onClose: () => void;
 }
 
-function fmt(value: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0,
-  }).format(value);
-}
-
-function costTier(score: number): { label: string; color: string } {
-  if (score >= 8) return { label: 'Very affordable', color: '#4ade80' };
-  if (score >= 6) return { label: 'Affordable', color: '#a3e635' };
-  if (score >= 4) return { label: 'Moderate', color: '#facc15' };
-  if (score >= 2) return { label: 'Expensive', color: '#fb923c' };
-  return { label: 'Very expensive', color: '#f87171' };
+function costTier(score: number, lang: Lang): { label: string; color: string } {
+  if (score >= 8) return { label: tr('veryAffordable', lang), color: '#4ade80' };
+  if (score >= 6) return { label: tr('affordable', lang), color: '#a3e635' };
+  if (score >= 4) return { label: tr('moderate', lang), color: '#facc15' };
+  if (score >= 2) return { label: tr('expensive', lang), color: '#fb923c' };
+  return { label: tr('veryExpensive', lang), color: '#f87171' };
 }
 
 interface Row {
@@ -29,35 +24,34 @@ interface Row {
   note?: string;
 }
 
-export default function CityPanel({ city, onClose }: Props) {
+export default function CityPanel({ city, lang, currency, onClose }: Props) {
   const visible = city !== null;
-  const tier = city ? costTier(city.costScore) : null;
+  const tier = city ? costTier(city.costScore, lang) : null;
 
   const housing: Row[] = city?.costs ? [
-    { label: 'Apartment (1 bedroom) in centre', value: city.costs.rent1br, note: 'monthly' },
-    { label: 'Apartment (3 bedrooms) in centre', value: city.costs.rent3br, note: 'monthly' },
+    { label: tr('rent1br', lang), value: city.costs.rent1br, note: tr('monthly', lang) },
+    { label: tr('rent3br', lang), value: city.costs.rent3br, note: tr('monthly', lang) },
   ] : [];
 
   const food: Row[] = city?.costs ? [
-    { label: 'Meal at inexpensive restaurant', value: city.costs.meal },
-    { label: 'Dinner for 2 at mid-range restaurant', value: city.costs.mealMid },
-    { label: 'Monthly groceries (single person)', value: city.costs.groceries },
+    { label: tr('meal', lang), value: city.costs.meal },
+    { label: tr('mealMid', lang), value: city.costs.mealMid },
+    { label: tr('groceries', lang), value: city.costs.groceries },
   ] : [];
 
   const transport: Row[] = city?.costs ? [
-    { label: 'Monthly public transport pass', value: city.costs.transport },
+    { label: tr('transportPass', lang), value: city.costs.transport },
   ] : [];
 
   const utilities: Row[] = city?.costs ? [
-    { label: 'Utilities (water, electricity, heating)', value: city.costs.utilities, note: 'monthly, 85m²' },
-    { label: 'Internet (60+ Mbps unlimited)', value: city.costs.internet, note: 'monthly' },
+    { label: tr('utilitiesItem', lang), value: city.costs.utilities, note: tr('monthly85', lang) },
+    { label: tr('internet', lang), value: city.costs.internet, note: tr('monthly', lang) },
   ] : [];
 
   const income: Row[] = city?.costs ? [
-    { label: 'Average net monthly salary', value: city.costs.salary },
+    { label: tr('salary', lang), value: city.costs.salary },
   ] : [];
 
-  // Quick metric: months of rent on avg salary
   const affordabilityRatio = city?.costs && city.costs.salary > 0
     ? Math.round((city.costs.rent1br / city.costs.salary) * 100)
     : null;
@@ -69,12 +63,13 @@ export default function CityPanel({ city, onClose }: Props) {
       }`}
     >
       <div className="h-full bg-slate-950/95 backdrop-blur-xl border-l border-slate-800/80 flex flex-col shadow-[0_0_40px_rgba(0,0,0,0.6)]">
-        {/* Header */}
         <div className="flex items-start justify-between p-5 border-b border-slate-800/80 shrink-0">
           {city && tier && (
             <div className="min-w-0 flex-1">
-              <h2 className="text-2xl font-bold text-white leading-tight truncate">{city.name}</h2>
-              <p className="text-sm text-slate-400 mt-0.5">{city.country}</p>
+              <h2 className="text-2xl font-bold text-white leading-tight truncate">
+                {cityName(city.slug, city.name, lang)}
+              </h2>
+              <p className="text-sm text-slate-400 mt-0.5">{countryName(city.country, lang)}</p>
               <div className="mt-3 flex items-center gap-2 flex-wrap">
                 <span
                   className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-xs font-medium"
@@ -88,7 +83,9 @@ export default function CityPanel({ city, onClose }: Props) {
                   {tier.label}
                 </span>
                 <span className="text-xs text-slate-500">
-                  Quality of life <span className="text-slate-300 font-semibold">{Math.round(city.overallScore)}</span>/100
+                  {tr('qualityOfLife', lang)}{' '}
+                  <span className="text-slate-300 font-semibold">{Math.round(city.overallScore)}</span>
+                  /100
                 </span>
               </div>
             </div>
@@ -97,7 +94,7 @@ export default function CityPanel({ city, onClose }: Props) {
           <button
             onClick={onClose}
             className="text-slate-500 hover:text-white transition-colors ml-3 shrink-0 p-1.5 -m-1.5 rounded hover:bg-slate-800/50"
-            aria-label="Close"
+            aria-label={tr('close', lang)}
           >
             <svg width="18" height="18" viewBox="0 0 20 20" fill="none">
               <path d="M15 5L5 15M5 5l10 10" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" />
@@ -105,11 +102,10 @@ export default function CityPanel({ city, onClose }: Props) {
           </button>
         </div>
 
-        {/* Body */}
         <div className="flex-1 overflow-y-auto panel-scroll p-5 space-y-7">
           {!city?.costs && city && (
             <div className="text-sm text-slate-500 leading-relaxed">
-              Detailed pricing isn&apos;t available for {city.name} yet. The affordability score reflects the cached cost-of-living index.
+              {tr('noData', lang)(cityName(city.slug, city.name, lang))}
             </div>
           )}
 
@@ -118,36 +114,41 @@ export default function CityPanel({ city, onClose }: Props) {
               {affordabilityRatio !== null && (
                 <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
                   <div className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">
-                    Rent-to-income ratio
+                    {tr('rentToIncomeTitle', lang)}
                   </div>
                   <div className="flex items-baseline gap-2">
                     <span className="text-2xl font-bold text-white tabular-nums">{affordabilityRatio}%</span>
-                    <span className="text-xs text-slate-500">of avg salary goes to 1BR rent</span>
+                    <span className="text-xs text-slate-500">{tr('rentToIncomeNote', lang)}</span>
                   </div>
                 </div>
               )}
 
-              <Section title="Housing" rows={housing} />
-              <Section title="Food & Groceries" rows={food} />
-              <Section title="Transport" rows={transport} />
-              <Section title="Utilities & Internet" rows={utilities} />
-              <Section title="Income" rows={income} highlight />
+              <Section title={tr('housing', lang)} rows={housing} currency={currency} lang={lang} />
+              <Section title={tr('food', lang)} rows={food} currency={currency} lang={lang} />
+              <Section title={tr('transport', lang)} rows={transport} currency={currency} lang={lang} />
+              <Section title={tr('utilitiesTitle', lang)} rows={utilities} currency={currency} lang={lang} />
+              <Section title={tr('income', lang)} rows={income} currency={currency} lang={lang} highlight />
             </>
           )}
         </div>
 
-        {/* Footer */}
         <div className="shrink-0 px-5 py-3 border-t border-slate-800/80">
-          <p className="text-[11px] text-slate-600 leading-relaxed">
-            Prices in USD. Indicative averages — actual costs vary by neighborhood and lifestyle.
-          </p>
+          <p className="text-[11px] text-slate-600 leading-relaxed">{tr('pricesNote', lang)}</p>
         </div>
       </div>
     </div>
   );
 }
 
-function Section({ title, rows, highlight }: { title: string; rows: Row[]; highlight?: boolean }) {
+function Section({
+  title, rows, currency, lang, highlight,
+}: {
+  title: string;
+  rows: Row[];
+  currency: Currency;
+  lang: Lang;
+  highlight?: boolean;
+}) {
   if (rows.length === 0) return null;
   return (
     <div>
@@ -169,7 +170,7 @@ function Section({ title, rows, highlight }: { title: string; rows: Row[]; highl
                 highlight ? 'text-emerald-400' : 'text-white'
               }`}
             >
-              {fmt(r.value)}
+              {formatMoney(r.value, currency, lang)}
             </span>
           </div>
         ))}
