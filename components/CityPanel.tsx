@@ -52,8 +52,22 @@ export default function CityPanel({ city, lang, currency, onClose }: Props) {
     { label: tr('salary', lang), value: city.costs.salary },
   ] : [];
 
-  const affordabilityRatio = city?.costs && city.costs.salary > 0
-    ? Math.round((city.costs.rent1br / city.costs.salary) * 100)
+  // Monthly cost per person: rent + utilities + internet + transport + groceries + 6 meals out
+  const monthlySpend = city?.costs
+    ? city.costs.rent1br
+      + city.costs.utilities
+      + city.costs.internet
+      + city.costs.transport
+      + city.costs.groceries
+      + city.costs.meal * 6
+    : null;
+
+  const salaryRatio = monthlySpend !== null && city?.costs && city.costs.salary > 0
+    ? Math.round((monthlySpend / city.costs.salary) * 100)
+    : null;
+
+  const remaining = monthlySpend !== null && city?.costs
+    ? city.costs.salary - monthlySpend
     : null;
 
   return (
@@ -111,15 +125,53 @@ export default function CityPanel({ city, lang, currency, onClose }: Props) {
 
           {city?.costs && (
             <>
-              {affordabilityRatio !== null && (
-                <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-4">
-                  <div className="text-xs text-slate-500 uppercase tracking-wider font-semibold mb-1">
-                    {tr('rentToIncomeTitle', lang)}
+              {monthlySpend !== null && salaryRatio !== null && remaining !== null && (
+                <div className="bg-gradient-to-br from-blue-950/60 to-slate-900/60 border border-blue-900/40 rounded-xl p-4">
+                  <div className="text-xs text-blue-300/80 uppercase tracking-wider font-semibold mb-2">
+                    {tr('monthlySpendTitle', lang)}
                   </div>
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-2xl font-bold text-white tabular-nums">{affordabilityRatio}%</span>
-                    <span className="text-xs text-slate-500">{tr('rentToIncomeNote', lang)}</span>
+                  <div className="flex items-baseline gap-2 mb-3">
+                    <span className="text-3xl font-bold text-white tabular-nums">
+                      {formatMoney(monthlySpend, currency, lang)}
+                    </span>
+                    <span className="text-xs text-slate-500">/ {tr('monthly', lang)}</span>
                   </div>
+
+                  <div className="h-1.5 bg-slate-800 rounded-full overflow-hidden mb-2">
+                    <div
+                      className="h-full transition-all duration-500"
+                      style={{
+                        width: `${Math.min(100, salaryRatio)}%`,
+                        background:
+                          salaryRatio < 60
+                            ? 'linear-gradient(90deg,#4ade80,#a3e635)'
+                            : salaryRatio < 90
+                            ? 'linear-gradient(90deg,#facc15,#fb923c)'
+                            : 'linear-gradient(90deg,#fb923c,#f87171)',
+                      }}
+                    />
+                  </div>
+
+                  <div className="flex justify-between text-xs">
+                    <span className="text-slate-400">
+                      <span className="text-white font-semibold tabular-nums">{salaryRatio}%</span>{' '}
+                      {tr('ofSalary', lang)}
+                    </span>
+                    <span className="text-slate-400">
+                      <span
+                        className={`font-semibold tabular-nums ${
+                          remaining > 0 ? 'text-emerald-400' : 'text-red-400'
+                        }`}
+                      >
+                        {remaining > 0 ? '+' : ''}{formatMoney(remaining, currency, lang)}
+                      </span>{' '}
+                      {tr('afterExpenses', lang)}
+                    </span>
+                  </div>
+
+                  <p className="text-[11px] text-slate-600 leading-relaxed mt-3 pt-3 border-t border-slate-800/60">
+                    {tr('monthlySpendIncludes', lang)}
+                  </p>
                 </div>
               )}
 
