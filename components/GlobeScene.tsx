@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useEffect, useState, useCallback } from 'react';
-import Globe from 'react-globe.gl';
+import Globe, { GlobeMethods } from 'react-globe.gl';
 import { City } from '@/lib/types';
 
 interface Props {
@@ -34,7 +34,7 @@ function pointLabel(city: City): string {
 }
 
 export default function GlobeScene({ cities, selectedCity, onCitySelect }: Props) {
-  const globeRef = useRef<any>(null);
+  const globeRef = useRef<GlobeMethods | undefined>(undefined);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dims, setDims] = useState({ w: 800, h: 600 });
   const [ready, setReady] = useState(false);
@@ -54,39 +54,40 @@ export default function GlobeScene({ cities, selectedCity, onCitySelect }: Props
     return () => ro.disconnect();
   }, []);
 
-  // Init globe controls
+  // Globe mounts synchronously — init controls on next frame
   useEffect(() => {
-    if (!globeRef.current || !ready) return;
-    const ctrl = globeRef.current.controls();
-    ctrl.autoRotate = true;
-    ctrl.autoRotateSpeed = 0.35;
-    ctrl.enableDamping = true;
-    ctrl.dampingFactor = 0.1;
-    globeRef.current.pointOfView({ altitude: 2.2 });
-  }, [ready]);
+    const id = requestAnimationFrame(() => {
+      if (!globeRef.current) return;
+      const ctrl = globeRef.current.controls() as any;
+      ctrl.autoRotate = true;
+      ctrl.autoRotateSpeed = 0.35;
+      ctrl.enableDamping = true;
+      ctrl.dampingFactor = 0.1;
+      (globeRef.current as any).pointOfView({ altitude: 2.2 });
+      setReady(true);
+    });
+    return () => cancelAnimationFrame(id);
+  }, []);
 
   // Fly to selected city
   useEffect(() => {
     if (!globeRef.current || !selectedCity || !ready) return;
-    globeRef.current.pointOfView(
+    (globeRef.current as any).pointOfView(
       { lat: selectedCity.lat, lng: selectedCity.lng, altitude: 1.8 },
       800,
     );
-    globeRef.current.controls().autoRotate = false;
+    (globeRef.current.controls() as any).autoRotate = false;
   }, [selectedCity, ready]);
 
   const handleHover = useCallback((point: object | null) => {
     if (!globeRef.current) return;
-    globeRef.current.controls().autoRotate = !point && !selectedCity;
+    (globeRef.current.controls() as any).autoRotate = !point && !selectedCity;
   }, [selectedCity]);
 
   return (
     <div ref={containerRef} className="absolute inset-0">
       <Globe
-        ref={(el: any) => {
-          globeRef.current = el;
-          if (el && !ready) setReady(true);
-        }}
+        ref={globeRef}
         width={dims.w}
         height={dims.h}
         backgroundColor="rgba(0,0,0,0)"
