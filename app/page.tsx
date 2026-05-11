@@ -3,7 +3,6 @@
 import dynamic from 'next/dynamic';
 import { useState, useCallback } from 'react';
 import { City } from '@/lib/types';
-import { fetchCityEnrichment, EnrichedData } from '@/lib/teleport-client';
 import CityPanel from '@/components/CityPanel';
 import citiesData from '@/public/cities.json';
 
@@ -46,29 +45,13 @@ function Legend() {
 
 export default function Home() {
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
-  const [enrichment, setEnrichment] = useState<EnrichedData | null>(null);
-  const [enrichmentLoading, setEnrichmentLoading] = useState(false);
-  const [enrichmentFailed, setEnrichmentFailed] = useState(false);
 
-  const handleCitySelect = useCallback(async (city: City) => {
-    if (selectedCity?.slug === city.slug) return;
+  const handleCitySelect = useCallback((city: City) => {
     setSelectedCity(city);
-    setEnrichment(null);
-    setEnrichmentFailed(false);
-    setEnrichmentLoading(true);
-
-    const data = await fetchCityEnrichment(city.slug);
-
-    setEnrichment(data);
-    setEnrichmentFailed(data === null);
-    setEnrichmentLoading(false);
-  }, [selectedCity]);
+  }, []);
 
   const handleClose = useCallback(() => {
     setSelectedCity(null);
-    setEnrichment(null);
-    setEnrichmentLoading(false);
-    setEnrichmentFailed(false);
   }, []);
 
   return (
@@ -98,13 +81,7 @@ export default function Home() {
         onCitySelect={handleCitySelect}
       />
 
-      <CityPanel
-        city={selectedCity}
-        enrichment={enrichment}
-        enrichmentLoading={enrichmentLoading}
-        enrichmentFailed={enrichmentFailed}
-        onClose={handleClose}
-      />
+      <CityPanel city={selectedCity} onClose={handleClose} />
 
       <div className="absolute bottom-5 left-4 md:hidden z-10 pointer-events-none">
         <Legend />

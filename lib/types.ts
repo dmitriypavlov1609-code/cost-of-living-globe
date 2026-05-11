@@ -1,3 +1,15 @@
+export interface CityCosts {
+  rent1br: number;
+  rent3br: number;
+  meal: number;
+  mealMid: number;
+  groceries: number;
+  transport: number;
+  utilities: number;
+  internet: number;
+  salary: number;
+}
+
 export interface City {
   slug: string;
   name: string;
@@ -6,28 +18,5 @@ export interface City {
   country: string;
   costScore: number;
   overallScore: number;
-}
-
-export interface CostItem {
-  id: string;
-  label: string;
-  value: number | null;
-}
-
-export interface CostCategory {
-  id: string;
-  label: string;
-  items: CostItem[];
-}
-
-export interface QualityScore {
-  name: string;
-  score: number;
-  color: string;
-}
-
-export interface CityDetail extends City {
-  summary: string;
-  qualityScores: QualityScore[];
-  costCategories: CostCategory[];
+  costs?: CityCosts;
 }
