@@ -2,8 +2,8 @@
 
 import dynamic from 'next/dynamic';
 import { useState, useCallback } from 'react';
-import { City, CityDetail } from '@/lib/types';
-import { fetchCityDetailClient } from '@/lib/teleport-client';
+import { City } from '@/lib/types';
+import { fetchCityEnrichment, EnrichedData } from '@/lib/teleport-client';
 import CityPanel from '@/components/CityPanel';
 import citiesData from '@/public/cities.json';
 
@@ -21,15 +21,6 @@ const GlobeScene = dynamic(() => import('@/components/GlobeScene'), {
 
 const cities = citiesData as City[];
 
-function Dot({ color }: { color: string }) {
-  return (
-    <span
-      className="inline-block w-2 h-2 rounded-full shrink-0"
-      style={{ background: color, boxShadow: `0 0 5px ${color}` }}
-    />
-  );
-}
-
 function Legend() {
   const items = [
     { color: '#4ade80', label: 'Very affordable' },
@@ -42,7 +33,10 @@ function Legend() {
     <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-slate-400">
       {items.map(({ color, label }) => (
         <div key={label} className="flex items-center gap-1.5">
-          <Dot color={color} />
+          <span
+            className="w-2 h-2 rounded-full shrink-0"
+            style={{ background: color, boxShadow: `0 0 5px ${color}` }}
+          />
           {label}
         </div>
       ))}
@@ -52,40 +46,36 @@ function Legend() {
 
 export default function Home() {
   const [selectedCity, setSelectedCity] = useState<City | null>(null);
-  const [cityDetail, setCityDetail] = useState<CityDetail | null>(null);
-  const [loadingDetail, setLoadingDetail] = useState(false);
+  const [enrichment, setEnrichment] = useState<EnrichedData | null>(null);
+  const [enrichmentLoading, setEnrichmentLoading] = useState(false);
+  const [enrichmentFailed, setEnrichmentFailed] = useState(false);
 
   const handleCitySelect = useCallback(async (city: City) => {
     if (selectedCity?.slug === city.slug) return;
     setSelectedCity(city);
-    setCityDetail(null);
-    setLoadingDetail(true);
+    setEnrichment(null);
+    setEnrichmentFailed(false);
+    setEnrichmentLoading(true);
 
-    const detail = await fetchCityDetailClient(city.slug, {
-      name: city.name,
-      country: city.country,
-      lat: city.lat,
-      lng: city.lng,
-      costScore: city.costScore,
-      overallScore: city.overallScore,
-    });
+    const data = await fetchCityEnrichment(city.slug);
 
-    setCityDetail(detail);
-    setLoadingDetail(false);
+    setEnrichment(data);
+    setEnrichmentFailed(data === null);
+    setEnrichmentLoading(false);
   }, [selectedCity]);
 
   const handleClose = useCallback(() => {
     setSelectedCity(null);
-    setCityDetail(null);
-    setLoadingDetail(false);
+    setEnrichment(null);
+    setEnrichmentLoading(false);
+    setEnrichmentFailed(false);
   }, []);
 
   return (
     <main
       className="relative w-screen h-screen overflow-hidden"
-      style={{ background: 'radial-gradient(ellipse at 50% 60%, #0d1b3e 0%, #050510 65%)' }}
+      style={{ background: 'radial-gradient(ellipse at 50% 55%, #0e1a3a 0%, #050510 70%)' }}
     >
-      {/* Header */}
       <header className="absolute top-0 left-0 right-0 z-10 px-6 py-5 pointer-events-none select-none">
         <div className="flex items-start justify-between">
           <div>
@@ -102,29 +92,27 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Globe */}
       <GlobeScene
         cities={cities}
         selectedCity={selectedCity}
         onCitySelect={handleCitySelect}
       />
 
-      {/* City detail panel */}
       <CityPanel
-        city={cityDetail}
-        loading={loadingDetail}
+        city={selectedCity}
+        enrichment={enrichment}
+        enrichmentLoading={enrichmentLoading}
+        enrichmentFailed={enrichmentFailed}
         onClose={handleClose}
       />
 
-      {/* Mobile legend */}
       <div className="absolute bottom-5 left-4 md:hidden z-10 pointer-events-none">
         <Legend />
       </div>
 
-      {/* Vignette */}
       <div
         className="absolute inset-0 pointer-events-none"
-        style={{ background: 'radial-gradient(ellipse at center, transparent 45%, rgba(3,3,12,0.65) 100%)' }}
+        style={{ background: 'radial-gradient(ellipse at center, transparent 45%, rgba(3,3,12,0.7) 100%)' }}
       />
     </main>
   );
