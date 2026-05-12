@@ -52,14 +52,18 @@ export default function CityPanel({ city, lang, currency, onClose }: Props) {
     { label: tr('salary', lang), value: city.costs.salary },
   ] : [];
 
-  // Monthly cost per person: rent + utilities + internet + transport + groceries + 6 meals out
-  const monthlySpend = city?.costs
-    ? city.costs.rent1br
+  // Affordable housing = 1BR outside the centre (~70% of centre rent)
+  const cheapHousing = city?.costs ? Math.round(city.costs.rent1br * 0.7) : null;
+  const mealsOut = city?.costs ? city.costs.meal * 6 : null;
+
+  // Monthly cost per person: affordable housing + utilities + internet + transport + groceries + 6 meals out
+  const monthlySpend = city?.costs && cheapHousing !== null && mealsOut !== null
+    ? cheapHousing
       + city.costs.utilities
       + city.costs.internet
       + city.costs.transport
       + city.costs.groceries
-      + city.costs.meal * 6
+      + mealsOut
     : null;
 
   const salaryRatio = monthlySpend !== null && city?.costs && city.costs.salary > 0
@@ -69,6 +73,15 @@ export default function CityPanel({ city, lang, currency, onClose }: Props) {
   const remaining = monthlySpend !== null && city?.costs
     ? city.costs.salary - monthlySpend
     : null;
+
+  const breakdown = city?.costs && cheapHousing !== null && mealsOut !== null ? [
+    { label: tr('affordableHousingLabel', lang), value: cheapHousing, highlight: true },
+    { label: tr('utilitiesItem', lang), value: city.costs.utilities },
+    { label: tr('internet', lang), value: city.costs.internet },
+    { label: tr('transportPass', lang), value: city.costs.transport },
+    { label: tr('groceries', lang), value: city.costs.groceries },
+    { label: tr('mealsOutLabel', lang), value: mealsOut },
+  ] : [];
 
   return (
     <div
@@ -152,7 +165,7 @@ export default function CityPanel({ city, lang, currency, onClose }: Props) {
                     />
                   </div>
 
-                  <div className="flex justify-between text-xs">
+                  <div className="flex justify-between text-xs mb-4">
                     <span className="text-slate-400">
                       <span className="text-white font-semibold tabular-nums">{salaryRatio}%</span>{' '}
                       {tr('ofSalary', lang)}
@@ -169,8 +182,22 @@ export default function CityPanel({ city, lang, currency, onClose }: Props) {
                     </span>
                   </div>
 
+                  {/* Breakdown */}
+                  <div className="pt-3 border-t border-slate-800/60 space-y-1.5">
+                    {breakdown.map((r) => (
+                      <div key={r.label} className="flex justify-between items-baseline gap-3 text-xs">
+                        <span className={`truncate ${r.highlight ? 'text-slate-200 font-medium' : 'text-slate-400'}`}>
+                          {r.label}
+                        </span>
+                        <span className={`tabular-nums shrink-0 ${r.highlight ? 'text-white font-semibold' : 'text-slate-300'}`}>
+                          {formatMoney(r.value, currency, lang)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+
                   <p className="text-[11px] text-slate-600 leading-relaxed mt-3 pt-3 border-t border-slate-800/60">
-                    {tr('monthlySpendIncludes', lang)}
+                    {tr('housingNote', lang)}
                   </p>
                 </div>
               )}
